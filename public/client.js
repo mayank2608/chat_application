@@ -41,10 +41,12 @@ class ChatClient {
         if (username) {
             this.connect();
             this.ws.onopen = () => {
-                this.ws.send(JSON.stringify({
-                    type: 'login',
-                    username: username
-                }));
+                setTimeout(() => {
+                    this.ws.send(JSON.stringify({
+                        type: 'login',
+                        username: username
+                    }));
+                }, 100);
             };
         }
     }
