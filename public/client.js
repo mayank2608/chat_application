@@ -1,4 +1,11 @@
 class ChatClient {
+    connect() {
+        this.ws = new WebSocket('https://chat-application-7gum.onrender.com');
+        this.ws.onmessage = (event) => this.handleMessage(event);
+        this.ws.onclose = () => this.handleDisconnect();
+    }
+
+
     constructor() {
         this.ws = null;
         this.username = null;
@@ -28,11 +35,6 @@ class ChatClient {
         };
     }
 
-    connect() {
-        this.ws = new WebSocket('https://chat-application-7gum.onrender.com');
-        this.ws.onmessage = (event) => this.handleMessage(event);
-        this.ws.onclose = () => this.handleDisconnect();
-    }
 
     handleLogin() {
         const username = this.usernameInput.value.trim();
