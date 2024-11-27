@@ -2,6 +2,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
+const cors = require('cors');
+
+const allowedOrigins = [
+  'https://chat-application-85mb0re1y-mayank-pawars-projects.vercel.app',
+  'http://localhost:3000'  // Keep this for local development
+];
 
 // Create HTTP server
 const server = http.createServer((req, res) => {
@@ -26,7 +32,14 @@ const wss = new WebSocket.Server({ server });
 // Store connected clients
 const clients = new Map();
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
+    // Verify origin
+    const origin = req.headers.origin;
+    if (!allowedOrigins.includes(origin)) {
+        ws.close();
+        return;
+    }
+
     let username = null;
 
     ws.on('message', (message) => {
@@ -107,3 +120,10 @@ const PORT = 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+// If you're using Express, add CORS headers
+app.use(cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
+}));
