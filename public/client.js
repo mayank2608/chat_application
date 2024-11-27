@@ -29,7 +29,7 @@ class ChatClient {
     }
 
     connect() {
-        this.ws = new WebSocket(`ws://${window.location.host}`);
+        this.ws = new WebSocket('https://chat-application-7gum.onrender.com');
         this.ws.onmessage = (event) => this.handleMessage(event);
         this.ws.onclose = () => this.handleDisconnect();
     }
