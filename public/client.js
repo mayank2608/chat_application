@@ -1,8 +1,14 @@
 class ChatClient {
     connect() {
+        if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+            return; // Do nothing if the WebSocket is already open or connecting
+        }
         this.ws = new WebSocket('https://chat-application-7gum.onrender.com');
         this.ws.onmessage = (event) => this.handleMessage(event);
         this.ws.onclose = () => this.handleDisconnect();
+        return new Promise((resolve) => {
+            this.ws.onopen = () => resolve();
+        });
     }
 
 
