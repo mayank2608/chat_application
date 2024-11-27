@@ -7,7 +7,7 @@ const express = require('express');
 const app = express(); // Define the app object
 
 const allowedOrigins = [
-  'https://chat-application-85mb0re1y-mayank-pawars-projects.vercel.app',
+  'https://chat-application-one-xi.vercel.app/',
   'http://localhost:3000'  // Keep this for local development
 ];
 
