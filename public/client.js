@@ -1,22 +1,41 @@
 class ChatClient {
-    connect() {
-        if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-            return; // Prevent reconnect attempts if WebSocket is already active
-        }
-
-        this.ws = new WebSocket('https://chat-application-7gum.onrender.com');
-
-        this.ws.onopen = () => console.log('Connected to server');
-        this.ws.onmessage = (event) => this.handleMessage(event);
-        this.ws.onclose = () => this.handleDisconnect();
-        this.ws.onerror = (err) => console.error('WebSocket error:', err);
-    }
-
     constructor() {
         this.ws = null;
         this.username = null;
+        this.retryAttempts = 0; // Track reconnection attempts
+        this.maxRetries = 5; // Limit reconnection attempts
+        this.retryDelay = 2000; // Delay between reconnection attempts in ms
         this.setupDOMElements();
         this.attachEventListeners();
+    }
+
+    connect() {
+        // Prevent reconnect attempts if WebSocket is already active or too many retries
+        if (
+            this.ws &&
+            (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) ||
+            this.retryAttempts >= this.maxRetries
+        ) {
+            return;
+        }
+
+        this.ws = new WebSocket('wss://chat-application-7gum.onrender.com'); // Correct WebSocket URL
+
+        this.ws.onopen = () => {
+            console.log('Connected to server');
+            this.retryAttempts = 0; // Reset retries on successful connection
+        };
+
+        this.ws.onmessage = (event) => this.handleMessage(event);
+
+        this.ws.onclose = () => {
+            console.warn('Disconnected from server. Attempting to reconnect...');
+            this.retryReconnect();
+        };
+
+        this.ws.onerror = (err) => {
+            console.error('WebSocket error:', err);
+        };
     }
 
     setupDOMElements() {
@@ -48,18 +67,14 @@ class ChatClient {
 
             const waitForOpenConnection = () => {
                 return new Promise((resolve, reject) => {
-                    const maxRetries = 10; // Maximum retry attempts
-                    let retries = 0;
-
                     const interval = setInterval(() => {
                         if (this.ws.readyState === WebSocket.OPEN) {
                             clearInterval(interval);
                             resolve();
-                        } else if (retries >= maxRetries) {
+                        } else if (this.retryAttempts >= this.maxRetries) {
                             clearInterval(interval);
                             reject(new Error('Failed to connect to WebSocket'));
                         }
-                        retries++;
                     }, 100);
                 });
             };
@@ -102,7 +117,7 @@ class ChatClient {
 
     sendMessage() {
         const message = this.messageInput.value.trim();
-        if (message && this.ws.readyState === WebSocket.OPEN) {
+        if (message && this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({ type: 'message', message: message }));
             this.messageInput.value = '';
         } else {
@@ -119,9 +134,13 @@ class ChatClient {
         this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
     }
 
-    handleDisconnect() {
-        console.warn('Disconnected from server. Attempting to reconnect...');
-        setTimeout(() => this.connect(), 2000); // Attempt to reconnect after 2 seconds
+    retryReconnect() {
+        if (this.retryAttempts < this.maxRetries) {
+            this.retryAttempts++;
+            setTimeout(() => this.connect(), this.retryDelay);
+        } else {
+            console.error('Max reconnection attempts reached. Please refresh the page.');
+        }
     }
 }
 

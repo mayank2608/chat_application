@@ -2,46 +2,53 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
-const cors = require('cors');
 const express = require('express');
-const app = express(); // Define the app object
+const cors = require('cors');
 
+const app = express(); // Define the Express app
+const PORT = process.env.PORT || 3000; // Use environment port for deployment or fallback to 3000
+
+// Allowed origins for CORS and WebSocket connections
 const allowedOrigins = [
-  'https://chat-application-one-xi.vercel.app/',
-  'http://localhost:3000'  // Keep this for local development
+    'https://chat-application-one-xi.vercel.app', // Replace with your Vercel frontend URL
+    'http://localhost:3000'                     // Allow local development
 ];
 
-// Create HTTP server
-const server = http.createServer((req, res) => {
-    let filePath = path.join(__dirname, '../public', req.url === '/' ? 'index.html' : req.url);
-    let contentType = getContentType(filePath);
+// Middleware to handle CORS
+app.use(cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
+}));
 
-    fs.readFile(filePath, (err, content) => {
-        if (err) {
-            res.writeHead(500);
-            res.end('Error loading ' + filePath);
-            return;
-        }
+// Serve static files
+app.use(express.static(path.join(__dirname, '../public')));
 
-        res.writeHead(200, { 'Content-Type': contentType });
-        res.end(content);
-    });
+// Fallback route for SPA
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
 });
+
+// Create HTTP server
+const server = http.createServer(app);
 
 // Create WebSocket server
 const wss = new WebSocket.Server({ server });
 
-// Store connected clients
+// Store connected clients and their usernames
 const clients = new Map();
 
+// Handle WebSocket connections
 wss.on('connection', (ws, req) => {
-    // Verify origin
+    // Verify origin for security
     const origin = req.headers.origin;
     if (!allowedOrigins.includes(origin)) {
         ws.close();
+        console.error(`Connection from disallowed origin: ${origin}`);
         return;
     }
 
+    console.log('Client connected');
     let username = null;
 
     ws.on('message', (message) => {
@@ -52,15 +59,21 @@ wss.on('connection', (ws, req) => {
                 if (isUsernameValid(data.username)) {
                     username = data.username;
                     clients.set(ws, username);
+                    console.log(`${username} logged in`);
+
+                    // Notify all clients that a new user joined
                     broadcastMessage({
                         type: 'system',
                         message: `${username} joined the chat`
                     });
+
+                    // Send success response to the current client
                     ws.send(JSON.stringify({
                         type: 'login',
                         success: true
                     }));
                 } else {
+                    // Send error response if username is invalid
                     ws.send(JSON.stringify({
                         type: 'login',
                         success: false,
@@ -71,6 +84,7 @@ wss.on('connection', (ws, req) => {
 
             case 'message':
                 if (username) {
+                    console.log(`Message from ${username}: ${data.message}`);
                     broadcastMessage({
                         type: 'message',
                         username: username,
@@ -83,6 +97,7 @@ wss.on('connection', (ws, req) => {
 
     ws.on('close', () => {
         if (username) {
+            console.log(`${username} disconnected`);
             broadcastMessage({
                 type: 'system',
                 message: `${username} left the chat`
@@ -92,6 +107,7 @@ wss.on('connection', (ws, req) => {
     });
 });
 
+// Helper function to broadcast messages to all connected clients
 function broadcastMessage(message) {
     const messageStr = JSON.stringify(message);
     wss.clients.forEach(client => {
@@ -101,6 +117,7 @@ function broadcastMessage(message) {
     });
 }
 
+// Helper function to validate usernames
 function isUsernameValid(username) {
     return username &&
            username.length >= 3 &&
@@ -108,24 +125,7 @@ function isUsernameValid(username) {
            !Array.from(clients.values()).includes(username);
 }
 
-function getContentType(filePath) {
-    const ext = path.extname(filePath);
-    switch (ext) {
-        case '.html': return 'text/html';
-        case '.css': return 'text/css';
-        case '.js': return 'text/javascript';
-        default: return 'text/plain';
-    }
-}
-
-const PORT = 3000;
+// Start the HTTP server
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
-// If you're using Express, add CORS headers
-app.use(cors({
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
-    credentials: true
-}));
