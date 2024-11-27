@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
 const cors = require('cors');
+const express = require('express');
+const app = express(); // Define the app object
 
 const allowedOrigins = [
   'https://chat-application-85mb0re1y-mayank-pawars-projects.vercel.app',
