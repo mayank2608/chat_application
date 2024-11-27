@@ -1,16 +1,16 @@
 class ChatClient {
     connect() {
         if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-            return; // Do nothing if the WebSocket is already open or connecting
+            return; // Prevent reconnect attempts if WebSocket is already active
         }
+
         this.ws = new WebSocket('https://chat-application-7gum.onrender.com');
+
+        this.ws.onopen = () => console.log('Connected to server');
         this.ws.onmessage = (event) => this.handleMessage(event);
         this.ws.onclose = () => this.handleDisconnect();
-        return new Promise((resolve) => {
-            this.ws.onopen = () => resolve();
-        });
+        this.ws.onerror = (err) => console.error('WebSocket error:', err);
     }
-
 
     constructor() {
         this.ws = null;
@@ -41,19 +41,37 @@ class ChatClient {
         };
     }
 
-
     handleLogin() {
         const username = this.usernameInput.value.trim();
         if (username) {
             this.connect();
-            this.ws.onopen = () => {
-                setTimeout(() => {
-                    this.ws.send(JSON.stringify({
-                        type: 'login',
-                        username: username
-                    }));
-                }, 100);
+
+            const waitForOpenConnection = () => {
+                return new Promise((resolve, reject) => {
+                    const maxRetries = 10; // Maximum retry attempts
+                    let retries = 0;
+
+                    const interval = setInterval(() => {
+                        if (this.ws.readyState === WebSocket.OPEN) {
+                            clearInterval(interval);
+                            resolve();
+                        } else if (retries >= maxRetries) {
+                            clearInterval(interval);
+                            reject(new Error('Failed to connect to WebSocket'));
+                        }
+                        retries++;
+                    }, 100);
+                });
             };
+
+            waitForOpenConnection()
+                .then(() => {
+                    this.ws.send(JSON.stringify({ type: 'login', username: username }));
+                })
+                .catch((err) => {
+                    console.error(err);
+                    alert('Could not connect to server. Please try again.');
+                });
         }
     }
 
@@ -84,12 +102,12 @@ class ChatClient {
 
     sendMessage() {
         const message = this.messageInput.value.trim();
-        if (message) {
-            this.ws.send(JSON.stringify({
-                type: 'message',
-                message: message
-            }));
+        if (message && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ type: 'message', message: message }));
             this.messageInput.value = '';
+        } else {
+            alert('Unable to send message. Reconnecting...');
+            this.connect();
         }
     }
 
@@ -102,7 +120,8 @@ class ChatClient {
     }
 
     handleDisconnect() {
-        alert('Disconnected from server. Please refresh the page to reconnect.');
+        console.warn('Disconnected from server. Attempting to reconnect...');
+        setTimeout(() => this.connect(), 2000); // Attempt to reconnect after 2 seconds
     }
 }
 
