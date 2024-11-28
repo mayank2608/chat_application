@@ -24,6 +24,34 @@ A real-time chat application built with WebSocket technology, allowing multiple 
 - Handles various WebSocket states (connecting, open, closing, closed)
 - Separates UI concerns from WebSocket communication logic
 
+
+## Technologies Used
+
+### Backend
+- Node.js - Runtime environment
+- Express.js - Web application framework
+- ws (WebSocket) - WebSocket server implementation
+- dotenv - Environment variable management
+
+### Frontend
+- HTML5 - Structure and WebSocket API
+- CSS3 - Styling and responsive design
+- Vanilla JavaScript - Client-side logic
+- WebSocket API - Real-time communication
+
+## Project Structure
+
+├── public/                 # Client-side files
+│   ├── index.html         # Main HTML file
+│   ├── styles.css         # Styling
+│   └── client.js          # WebSocket client implementation
+├── server/
+│   └── server.js          # Main server file
+├── package.json           # Project dependencies and scripts
+├── package-lock.json      # Locked dependencies
+└── README.md             # Project documentation
+
+
 ## Running Locally
 
 ### Prerequisites
@@ -55,7 +83,8 @@ The server will start on port 3000 by default.
 ## Accessing the Deployed Application
 
 The application is deployed and accessible at:
-- Client: https://chat-application-7gum.onrender.com
+- Frontend: https://chat-application-one-xi.vercel.app
+- Backend: https://chat-application-7gum.onrender.com
 - WebSocket: wss://chat-application-7gum.onrender.com
 
 ## Design Choices & Assumptions
