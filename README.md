@@ -39,18 +39,6 @@ A real-time chat application built with WebSocket technology, allowing multiple 
 - Vanilla JavaScript - Client-side logic
 - WebSocket API - Real-time communication
 
-## Project Structure
-
-├── public/                 # Client-side files
-│   ├── index.html         # Main HTML file
-│   ├── styles.css         # Styling
-│   └── client.js          # WebSocket client implementation
-├── server/
-│   └── server.js          # Main server file
-├── package.json           # Project dependencies and scripts
-├── package-lock.json      # Locked dependencies
-└── README.md             # Project documentation
-
 
 ## Running Locally
 
